@@ -221,7 +221,7 @@ def relay_loop(cfg: dict):
                 cfg["shoutcast_url"],
                 headers=headers,
                 stream=True,
-                timeout=15,
+                timeout=(10, None),  # (connect_timeout, read_timeout=infinite)
             )
             resp.raise_for_status()
 
@@ -242,7 +242,7 @@ def relay_loop(cfg: dict):
             state.last_error = ""
 
             # ---- Read & relay ----
-            raw_iter = resp.iter_content(chunk_size=None)
+            raw_iter = resp.iter_content(chunk_size=8192)
 
             if icy_metaint > 0:
                 _relay_with_metadata(raw_iter, ice_sock, icy_metaint, cfg)
@@ -288,6 +288,8 @@ def _relay_with_metadata(raw_iter, ice_sock: socket.socket, metaint: int, cfg: d
                 audio_remaining -= take
                 ice_sock.sendall(audio_data)
                 state.bytes_relayed += len(audio_data)
+                if state.bytes_relayed % (256 * 1024) < len(audio_data):
+                    log.info("Relayed %s so far", state._human_bytes())
             else:
                 # Next byte is the metadata length indicator
                 if len(buf) < 1:
