@@ -1,0 +1,19 @@
+FROM debian:bookworm-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends icecast2 curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /var/log/icecast2 && \
+    chown icecast2:icecast /var/log/icecast2
+
+COPY icecast.xml /etc/icecast2/icecast.xml
+RUN chown icecast2:icecast /etc/icecast2/icecast.xml
+
+EXPOSE 8000
+
+USER icecast2
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -sf http://localhost:8000/status.xsl > /dev/null || exit 1
+
+CMD ["icecast2", "-c", "/etc/icecast2/icecast.xml"]

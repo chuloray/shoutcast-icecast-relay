@@ -1,19 +1,16 @@
 services:
 
-  # ── Stream Relay (Shoutcast → Icecast) ─────────────────────
   relay:
     build: .
     container_name: shoutcast-relay
     restart: unless-stopped
     ports:
-      - "8080:8080"        # Web management UI
+      - "8080:8080"
     volumes:
       - relay-data:/app/data
     environment:
-      # All settings can be overridden here.
-      # They can also be changed at runtime via the web UI.
       - RELAY_SHOUTCAST_URL=http://your-shoutcast-server:8000
-      - RELAY_ICECAST_HOST=icecast          # use 'icecast' service below, or your external host
+      - RELAY_ICECAST_HOST=icecast
       - RELAY_ICECAST_PORT=8000
       - RELAY_ICECAST_MOUNT=/relay
       - RELAY_ICECAST_USER=source
@@ -27,30 +24,16 @@ services:
       icecast:
         condition: service_healthy
 
-  # ── Icecast 2 Server (optional — remove if using external) ─
   icecast:
-    image: infiniteproject/icecast:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.icecast
     container_name: icecast
     restart: unless-stopped
     ports:
-      - "8000:8000"        # Listener / source port
-    environment:
-      - ICECAST_SOURCE_PASSWORD=hackme
-      - ICECAST_ADMIN_PASSWORD=hackme
-      - ICECAST_RELAY_PASSWORD=hackme
-      - ICECAST_ADMIN_USERNAME=admin
-      - ICECAST_ADMIN_EMAIL=admin@localhost
-      - ICECAST_LOCATION=Earth
-      - ICECAST_HOSTNAME=localhost
-      - ICECAST_MAX_CLIENTS=100
-      - ICECAST_MAX_SOURCES=5
+      - "8000:8000"
     volumes:
       - icecast-logs:/var/log/icecast2
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/status.xsl"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
   relay-data:
